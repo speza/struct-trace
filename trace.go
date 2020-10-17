@@ -8,10 +8,12 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
+// Span represents the tracing span.
 type Span interface {
 	SetTag(key string, value interface{})
 }
 
+// StructTrace starts the struct scan recursivley processing any nested structs.
 func StructTrace(span Span, value interface{}) error {
 	return structTrace("", span, value)
 }
