@@ -7,6 +7,11 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
+const (
+	keyTagField = "key="
+	ignoreTag   = "ignore"
+)
+
 // Span represents the tracing span.
 type Span interface {
 	SetTag(key string, value interface{})
@@ -25,18 +30,22 @@ func structTrace(baseKey string, span Span, value interface{}) {
 		return
 	}
 
+fieldItr:
 	for i := 0; i < val.NumField(); i++ {
 		fType := val.Type().Field(i)
 
 		name := fType.Name
 		tag := fType.Tag.Get("trace")
-		if tag == "ignore" {
-			continue
-		}
-		if strings.HasPrefix(tag, "key=") {
-			name = strings.TrimPrefix(tag, "key=")
-		} else {
-			name = strcase.ToSnake(fType.Name)
+		items := strings.Split(tag, ",")
+		for i := range items {
+			if tag == ignoreTag {
+				continue fieldItr
+			}
+			if strings.HasPrefix(items[i], keyTagField) {
+				name = strings.TrimPrefix(tag, keyTagField)
+			} else {
+				name = strcase.ToSnake(fType.Name)
+			}
 		}
 
 		f := val.Field(i)
