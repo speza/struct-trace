@@ -1,4 +1,4 @@
-package main
+package structtrace
 
 import (
 	"testing"
@@ -7,25 +7,25 @@ import (
 )
 
 type model struct {
-	IgnoreStr    string `trace_ignore:"true"`
+	IgnoreStr    string `trace:"ignore"`
 	Str          string
 	StrPtr       *string
 	Nil          *string
 	Int          int
 	IntPtr       *int
-	StrCustomTag string `trace:"strCustomTag"`
+	StrCustomTag string `trace:"key=strCustomTag"`
 	Struct       modelChildA
-	StructTag    modelChildA `trace:"struct_custom_tag"`
+	StructTag    modelChildA `trace:"key=struct_custom_tag"`
 	NestedIgnore modelChildB
 }
 
 type modelChildA struct {
 	Str          string
-	StrCustomTag string `trace:"nested_custom_tag"`
+	StrCustomTag string `trace:"key=nested_custom_tag"`
 }
 
 type modelChildB struct {
-	Ignore string `trace_ignore:"true"`
+	Ignore string `trace:"ignore"`
 }
 
 type mockSpan struct {
@@ -62,8 +62,7 @@ func TestStructTrace(t *testing.T) {
 		},
 	}
 
-	err := StructTrace(span, value)
-	require.NoError(t, err)
+	StructTrace(span, value)
 
 	require.EqualValues(t, map[string]interface{}{
 		"int":                                 int64(1),

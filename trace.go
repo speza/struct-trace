@@ -1,9 +1,8 @@
-package main
+package structtrace
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 )
@@ -13,38 +12,37 @@ type Span interface {
 	SetTag(key string, value interface{})
 }
 
-// StructTrace starts the struct scan recursivley processing any nested structs.
-func StructTrace(span Span, value interface{}) error {
-	return structTrace("", span, value)
+// StructTrace starts the struct scan recursively processing any nested structs.
+func StructTrace(span Span, value interface{}) {
+	structTrace("", span, value)
 }
 
-func structTrace(key string, span Span, value interface{}) error {
+func structTrace(baseKey string, span Span, value interface{}) {
 	val := reflect.ValueOf(value)
 
+	// Only allow us to trace a struct.
 	if val.Kind() != reflect.Struct {
-		return errors.New("value must be a struct")
+		return
 	}
 
 	for i := 0; i < val.NumField(); i++ {
 		fType := val.Type().Field(i)
 
-		ignore := fType.Tag.Get("trace_ignore")
-		if ignore == "true" {
-			continue
-		}
-
 		name := fType.Name
 		tag := fType.Tag.Get("trace")
-		if tag != "" {
-			name = tag
+		if tag == "ignore" {
+			continue
+		}
+		if strings.HasPrefix(tag, "key=") {
+			name = strings.TrimPrefix(tag, "key=")
 		} else {
 			name = strcase.ToSnake(fType.Name)
 		}
 
 		f := val.Field(i)
 
-		if key != "" {
-			name = key + "." + name
+		if baseKey != "" {
+			name = baseKey + "." + name
 		}
 
 		if f.Kind() == reflect.Ptr {
@@ -67,11 +65,7 @@ func structTrace(key string, span Span, value interface{}) error {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			span.SetTag(name, f.Uint())
 		case reflect.Struct:
-			if err := structTrace(name, span, f.Interface()); err != nil {
-				return fmt.Errorf("failed to parse nested struct %s", name)
-			}
+			structTrace(name, span, f.Interface())
 		}
 	}
-
-	return nil
 }
