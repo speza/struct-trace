@@ -1,4 +1,4 @@
-module auto-trace
+module github.com/speza/struct-trace
 
 go 1.15
 
